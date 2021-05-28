@@ -1,13 +1,15 @@
 package com.icthh.xm.uaa.service.query.filter;
 
 import io.github.jhipster.service.filter.StringFilter;
-import java.io.Serializable;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
+
+import java.io.Serializable;
 
 @Data
-public class UserFilterQuery implements Serializable {
+@EqualsAndHashCode(callSuper = true)
+public class StrictUserFilterQuery extends AbstractUserFilterQuery implements Serializable {
     private StringFilter firstName;
     private StringFilter lastName;
     private StringFilter login;
-    private StringFilter roleKey;
 }

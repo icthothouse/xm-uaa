@@ -504,6 +504,77 @@ public class UserResourceIntTest {
 
     @Test
     @Transactional
+    public void findUserBySoftFilter() throws Exception {
+        String firstName = "homer";
+        String lastName = "simpson";
+        String login = "al-homero";
+        userRepository.saveAndFlush(user);
+        User userHomer = createEntity("ROLE_ADMIN");
+        userHomer.setFirstName(firstName);
+        userHomer.setLastName(lastName);
+        userHomer.getLogins().get(0).setLogin(login);
+        userHomer.getLogins().add(new UserLogin() {{
+            setLogin("donutEater");
+            setTypeKey(UserLoginType.EMAIL.getValue());
+            setUser(userHomer);
+        }});
+        userRepository.saveAndFlush(userHomer);
+
+        restUserMockMvc.perform(get("/api/users/filter-soft?query.contains=simps"))
+            .andExpect(status().isOk())
+            .andExpect(content().contentType(MediaType.APPLICATION_JSON_UTF8_VALUE))
+            .andExpect(jsonPath("$[0].userKey").value(userHomer.getUserKey()))
+            .andExpect(jsonPath("$[0].firstName").value(firstName))
+            .andExpect(jsonPath("$[0].lastName").value(lastName))
+            .andExpect(jsonPath("$[0].imageUrl").value(DEFAULT_IMAGEURL))
+            .andExpect(jsonPath("$[0].langKey").value(DEFAULT_LANGKEY))
+            .andExpect(jsonPath("$[0].logins[0].login").value(login));
+
+        // search by LastName case insensitive
+        restUserMockMvc.perform(get("/api/users/filter-soft?query.contains=SiMpS"))
+            .andExpect(status().isOk())
+            .andExpect(content().contentType(MediaType.APPLICATION_JSON_UTF8_VALUE))
+            .andExpect(jsonPath("$[0].userKey").value(userHomer.getUserKey()));
+
+        // search by FirstName case insensitive
+        restUserMockMvc.perform(get("/api/users/filter-soft?query.contains=hOm"))
+            .andExpect(status().isOk())
+            .andExpect(content().contentType(MediaType.APPLICATION_JSON_UTF8_VALUE))
+            .andExpect(jsonPath("$[0].userKey").value(userHomer.getUserKey()));
+
+        // search by Login case insensitive
+        restUserMockMvc.perform(get("/api/users/filter-soft?query.contains=NuT"))
+            .andExpect(status().isOk())
+            .andExpect(content().contentType(MediaType.APPLICATION_JSON_UTF8_VALUE))
+            .andExpect(jsonPath("$[0].userKey").value(userHomer.getUserKey()));
+
+        // search by Name and Role SUCCESS
+        restUserMockMvc.perform(get("/api/users/filter-soft?query.contains=nut&roleKey.equals=ROLE_ADMIN"))
+            .andExpect(status().isOk())
+            .andExpect(content().contentType(MediaType.APPLICATION_JSON_UTF8_VALUE))
+            .andExpect(jsonPath("$[0].userKey").value(userHomer.getUserKey()));
+
+        // search by Name and Role FAILED
+        restUserMockMvc.perform(get("/api/users/filter-soft?query.contains=nut&roleKey.equals=ROLE_UNKNOWN"))
+            .andExpect(status().isOk())
+            .andExpect(content().contentType(MediaType.APPLICATION_JSON_UTF8_VALUE))
+            .andExpect(content().string("[]"));
+
+        // search by Name and Role and Activated SUCCESS
+        restUserMockMvc.perform(get("/api/users/filter-soft?query.contains=nut&roleKey.equals=ROLE_ADMIN&activated.equals=true"))
+            .andExpect(status().isOk())
+            .andExpect(content().contentType(MediaType.APPLICATION_JSON_UTF8_VALUE))
+            .andExpect(jsonPath("$[0].userKey").value(userHomer.getUserKey()));
+
+        // search by Name and Role and Activated FAILED
+        restUserMockMvc.perform(get("/api/users/filter-soft?query.contains=nut&roleKey.equals=ROLE_ADMIN&activated.equals=false"))
+            .andExpect(status().isOk())
+            .andExpect(content().contentType(MediaType.APPLICATION_JSON_UTF8_VALUE))
+            .andExpect(content().string("[]"));
+    }
+
+    @Test
+    @Transactional
     public void getUserByLoginContains() throws Exception {
         userRepository.saveAndFlush(user);
         getUsersByLoginContainsMatcher("test");

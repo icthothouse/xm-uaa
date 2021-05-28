@@ -18,7 +18,8 @@ import com.icthh.xm.uaa.service.dto.TfaOtpChannelSpec;
 import com.icthh.xm.uaa.service.dto.UserDTO;
 import com.icthh.xm.uaa.service.dto.UserPublicDTO;
 import com.icthh.xm.uaa.service.query.UserQueryService;
-import com.icthh.xm.uaa.service.query.filter.UserFilterQuery;
+import com.icthh.xm.uaa.service.query.filter.SoftUserFilterQuery;
+import com.icthh.xm.uaa.service.query.filter.StrictUserFilterQuery;
 import com.icthh.xm.uaa.web.rest.util.HeaderUtil;
 import com.icthh.xm.uaa.web.rest.util.PaginationUtil;
 import io.github.jhipster.web.util.ResponseUtil;
@@ -33,7 +34,6 @@ import javax.validation.constraints.NotEmpty;
 import javax.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.StringUtils;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpHeaders;
@@ -240,9 +240,27 @@ public class UserResource {
     @GetMapping("/users/filter")
     @PostAuthorize("hasPermission({'returnObject': returnObject.body}, 'USER.GET_BY_FILTER.LIST')")
     @Timed
-    public ResponseEntity<List<UserDTO>> getAllByFilters(@ApiParam Pageable pageable, UserFilterQuery userFilterQuery){
-        final Page<UserDTO> page = userQueryService.findAllUsers(userFilterQuery,pageable);
+    public ResponseEntity<List<UserDTO>> getAllByStrictFilters(@ApiParam Pageable pageable, StrictUserFilterQuery strictUserFilterQuery){
+        final Page<UserDTO> page = userQueryService.findAllUsersByStrictMatch(strictUserFilterQuery,pageable);
         HttpHeaders headers = PaginationUtil.generatePaginationHttpHeaders(page, "/api/users/filter");
+        return new ResponseEntity<>(page.getContent(), headers, HttpStatus.OK);
+    }
+
+    /**
+     * Search user by occurrence a char sequence in firstname or lastname or login
+     *
+     * Doesn't support sort by logins.login
+     *
+     * @param pageable
+     * @param query - search char sequence
+     * @return
+     */
+    @GetMapping("/users/filter-soft")
+    @PostAuthorize("hasPermission({'returnObject': returnObject.body}, 'USER.GET_BY_FILTER.LIST')")
+    @Timed
+    public ResponseEntity<List<UserDTO>> getAllBySoftFilters(@ApiParam Pageable pageable, SoftUserFilterQuery query) {
+        Page<UserDTO> page = userQueryService.findAllUsersBySoftMatch(query, pageable);
+        HttpHeaders headers = PaginationUtil.generatePaginationHttpHeaders(page, "/api/users/filter-soft");
         return new ResponseEntity<>(page.getContent(), headers, HttpStatus.OK);
     }
 
